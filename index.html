@@ -1,0 +1,357 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ваш AI-помощник</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #fdf8f3; 
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      padding: 2rem 1rem;
+      font-size: 1.8rem;
+      font-weight: bold;
+      background: linear-gradient(135deg, #fcefe5, #e9f5db);
+      border-bottom: 1px solid #d9ead3;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .chat-container {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .message {
+      padding: 0.9rem 1.2rem;
+      border-radius: 20px;
+      max-width: 75%;
+      line-height: 1.5;
+      font-size: 0.95rem;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .user {
+      align-self: flex-end;
+      background-color: #a2d99c;
+      color: white;
+      border-top-right-radius: 10px;
+    }
+
+    .bot {
+      align-self: flex-start;
+      background-color: #f0f9f0;
+      color: #2d3436;
+      border-top-left-radius: 10px;
+    }
+
+    .doctor-card {
+      background-color: #ffffff;
+      border: 1px solid #dbe5db;
+      padding: 1rem;
+      border-radius: 16px;
+      margin-top: 0.6rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      transition: transform 0.2s ease;
+    }
+
+    .doctor-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .doctor-name {
+      font-weight: bold;
+      font-size: 1rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .doctor-specialty {
+      font-size: 0.85rem;
+      color: #5d9c59;
+      margin-bottom: 0.3rem;
+    }
+
+    .doctor-rating {
+      font-size: 0.85rem;
+      color: #f1c40f;
+      margin-bottom: 0.5rem;
+    }
+
+    .doctor-link {
+      display: inline-block;
+      margin-top: 0.3rem;
+      color: #5d9c59;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid #b2ddb2;
+      padding: 0.4rem 0.8rem;
+      border-radius: 12px;
+      transition: all 0.2s ease;
+      font-size: 0.9rem;
+    }
+
+    .doctor-link:hover {
+      background-color: #a2d99c;
+      color: white;
+      border-color: #a2d99c;
+    }
+
+    form {
+      display: flex;
+      padding: 1rem;
+      background-color: #f0f9f0;
+      border-top: 1px solid #d9ead3;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 0.7rem 1rem;
+      border: 1px solid #ccc;
+      border-radius: 24px;
+      outline: none;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    input[type="text"]:focus {
+      border-color: #5d9c59;
+      box-shadow: 0 0 0 3px rgba(93, 156, 89, 0.1);
+    }
+
+    button {
+      margin-left: 1rem;
+      padding: 0.7rem 1.2rem;
+      border: none;
+      border-radius: 24px;
+      background-color: #5d9c59;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #4b8848;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 600px) {
+      .chat-container,
+      form {
+        padding: 1rem 0.5rem;
+      }
+
+      .doctor-link {
+        font-size: 0.85rem;
+        padding: 0.35rem 0.7rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>Ваш AI-помощник</header>
+
+  <div class="chat-container" id="chat"></div>
+
+  <form id="chat-form">
+    <input type="text" id="user-input" placeholder="Введите сообщение..." autocomplete="off"/>
+    <button type="submit">Отправить</button>
+  </form>
+
+  <script>
+    const chat = document.getElementById('chat');
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('user-input');
+
+    function addMessage(text, sender) {
+      const msg = document.createElement('div');
+      msg.classList.add('message', sender);
+      msg.textContent = text;
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    // База знаний ИИ: ключевые фразы как набор слов
+    const responses = {
+      "здравствуйте добрый вечер": "Добрый вечер, что вас беспокоит?",
+      "привет здравствуй": "Здравствуйте! Чем могу помочь?",
+      "добрый день утро": "Здравствуйте! Расскажите, что вас тревожит?",
+      "голова мигрень давление": "Возможно у вас мигрень, повышенное или пониженное давление. Попробуйте проветрить комнату или прогуляться. Если голова всё ещё болит — проконсультируйтесь с врачом.",
+      "живот желудок кишечник": "Боль в животе может быть связана с желудком, кишечником или другими внутренними органами. Рекомендуется исключить острые состояния. Пейте достаточно воды, избегайте жирной пищи и обратитесь к врачу-гастроэнтерологу.",
+      "горло простуда инфекция": "Возможно, это признак простуды или инфекции верхних дыхательных путей. Полощите горло солёной водой, пейте тёплое и при необходимости примите пастилки. При высокой температуре или длительном дискомфорте — обязательно проконсультируйтесь с ЛОР-врачом.",
+      "спина мышцы позвоночник": "Боль в спине может быть связана с мышцами, позвоночником или нервами. Попробуйте больше двигаться, избегать долгого сидения и сделать лёгкую растяжку. Если боль сохраняется — стоит посетить ортопеда или невролога.",
+      "сердце пульс аритмия": "Колющие ощущения в области сердца могут быть связаны с множеством причин — от переутомления до нарушения ритма. Следите за своим пульсом, старайтесь избегать стрессов. Если симптомы повторяются — обязательно проконсультируйтесь с кардиологом.",
+      "тошнота рвота дискомфорт": "Тошнота может быть вызвана как легкими расстройствами, так и более серьёзными состояниями. Постарайтесь ничего не есть пару часов, пейте немного воды маленькими глотками. Если тошнота продолжается — стоит обратиться к врачу.",
+      "усталость переутомление": "Вы можете быть переутомлены. Попробуйте отдохнуть, выспаться и снизить нагрузку. Если чувство усталости сохраняется — стоит проверить уровень железа и щитовидной железы.",
+      "давление высокое гипертония": "При высоком давлении важно успокоиться, принять назначенное лекарство (если оно есть) и обратиться к терапевту. Избегайте стресса и контролируйте показатели.",
+      "давление низкое гипотония": "При низком давлении можно выпить чашку кофе или сладкого чая, немного полежать. Если часто низкое давление — стоит проконсультироваться с врачом.",
+      "температура жар лихорадка": "Повышенная температура может быть признаком инфекции. Отдыхайте, пейте много жидкости. При температуре выше 38.5°C принимайте жаропонижающее. Если температура держится долго — обратитесь к врачу.",
+      "одышка дыхание": "Одышка может быть связана с физической нагрузкой, но если она возникает без причины — рекомендую обратиться к кардиологу или пульмонологу.",
+      "слабость энергия": "Слабость может быть следствием недосыпа, анемии, стресса или хронической усталости. Если симптомы сохраняются — лучше проконсультироваться с врачом.",
+      "сон плохо не могу заснуть": "Попробуйте соблюдать режим сна, избегать экранов перед сном, пить травяной чай. Также полезно будет выключить свет и создать комфортную обстановку.",
+      "стресс тревога напряжение": "При стрессе помогают дыхательные упражнения, прогулки на свежем воздухе, медитации. Не забывайте про отдых и близких людей.",
+      "ноги варикоз боль": "Боли в ногах могут быть связаны с варикозом, плоскостопием или перегрузкой. Попробуйте делать массаж, использовать компрессионное бельё. При постоянных болях — обратитесь к флебологу.",
+      "грудь тяжесть боль": "Ощущение тяжести в груди может быть связано с переживаниями, недостатком сна или гормональными изменениями. Если вы замечаете другие симптомы (болезненность, уплотнения), рекомендую проконсультироваться с маммологом.",
+      "суставы боль воспаление": "Боль в суставах может быть связана с нагрузкой, возрастом или воспалением. Попробуйте ограничить активность, прикладывать прохладу. Если боль не проходит — стоит проконсультироваться с ревматологом или ортопедом.",
+      "спасибо благодарю": "Рад был помочь! Обращайтесь всегда.",
+      "до свидания пока": "До новых встреч! Берегите себя."
+    };
+
+    const doctorsBySymptom = {
+      "голова": [
+        { name: "Иванова Екатерина Сергеевна", specialty: "Невролог", rating: "★★★★★ 4.9", link: "https://example.com/ivanova"  },
+        { name: "Смирнов Дмитрий Александрович", specialty: "Невролог", rating: "★★★★☆ 4.7", link: "https://example.com/smirnov"  }
+      ],
+      "живот": [
+        { name: "Петрова Мария Витальевна", specialty: "Гастроэнтеролог", rating: "★★★★★ 4.8", link: "https://example.com/petrova"  },
+        { name: "Кузнецов Артём Павлович", specialty: "Гастроэнтеролог", rating: "★★★★☆ 4.6", link: "https://example.com/kuznetsov"  }
+      ],
+      "горло": [
+        { name: "Абдуллин Рустам Фаритович", specialty: "ЛОР", rating: "★★★★★ 4.9", link: "https://example.com/abdullin"  },
+        { name: "Фаттахова Альфия Минулловна", specialty: "ЛОР", rating: "★★★★☆ 4.7", link: "https://example.com/fattahova"  }
+      ],
+      "спина": [
+        { name: "Михайлов Владимир Николаевич", specialty: "Ортопед", rating: "★★★★☆ 4.7", link: "https://example.com/mikhailov"  },
+        { name: "Сидорова Татьяна Юрьевна", specialty: "Невролог", rating: "★★★★★ 4.8", link: "https://example.com/sidorova"  }
+      ],
+      "сердце": [
+        { name: "Каримов Рамиль Ринатович", specialty: "Кардиолог", rating: "★★★★★ 4.9", link: "https://example.com/karimov"  },
+        { name: "Галеева Эльвира Равилевна", specialty: "Кардиолог", rating: "★★★★☆ 4.6", link: "https://example.com/galeeva"  }
+      ],
+      "одышка": [
+        { name: "Новиков Александр Петрович", specialty: "Кардиолог", rating: "★★★★★ 4.8", link: "https://example.com/novikov"  },
+        { name: "Коваленко Анна Владимировна", specialty: "Пульмонолог", rating: "★★★★☆ 4.7", link: "https://example.com/kovalenko"  }
+      ],
+      "ноги болят": [
+        { name: "Филиппова Оксана Николаевна", specialty: "Флеболог", rating: "★★★★★ 4.8", link: "https://example.com/filippova"  },
+        { name: "Ермаков Сергей Васильевич", specialty: "Ортопед", rating: "★★★★☆ 4.7", link: "https://example.com/ermakov"  }
+      ],
+      "давление": [
+        { name: "Смирнова Ольга Петровна", specialty: "Терапевт", rating: "★★★★★ 4.9", link: "https://example.com/smirnova"  },
+        { name: "Алексеев Максим Сергеевич", specialty: "Кардиолог", rating: "★★★★☆ 4.7", link: "https://example.com/alekseev"  }
+      ]
+    };
+
+    function addDoctorCards(doctorList) {
+      doctorList.forEach(doctor => {
+        const card = document.createElement('div');
+        card.className = 'doctor-card';
+
+        const name = document.createElement('div');
+        name.className = 'doctor-name';
+        name.textContent = doctor.name;
+
+        const specialty = document.createElement('div');
+        specialty.className = 'doctor-specialty';
+        specialty.textContent = doctor.specialty;
+
+        const rating = document.createElement('div');
+        rating.className = 'doctor-rating';
+        rating.textContent = doctor.rating;
+
+        const link = document.createElement('a');
+        link.href = doctor.link;
+        link.textContent = "Записаться";
+        link.className = 'doctor-link';
+        link.target = "_blank";
+
+        card.appendChild(name);
+        card.appendChild(specialty);
+        card.appendChild(rating);
+        card.appendChild(link);
+
+        chat.appendChild(card);
+      });
+
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function getBotResponse(userMessage) {
+      const lower = userMessage.toLowerCase();
+
+      for (let key in responses) {
+        const keywords = key.split(" ");
+        if (keywords.some(word => lower.includes(word))) {
+          return responses[key];
+        }
+      }
+
+      return "Извините, я пока не знаю ответа на этот вопрос. Может быть, попробуете переформулировать или задать другой?";
+    }
+
+    window.onload = () => {
+      addMessage("Здравствуйте", "user");
+      setTimeout(() => {
+        addMessage(responses["здравствуйте добрый вечер"], "bot");
+      }, 500);
+    };
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const userText = input.value.trim();
+      if (!userText) return;
+
+      addMessage(userText, 'user');
+
+      const botReply = getBotResponse(userText);
+
+      setTimeout(() => {
+        addMessage(botReply, 'bot');
+
+        let matchedSymptom = null;
+
+        if (userText.includes("голова")) matchedSymptom = "голова";
+        else if (userText.includes("живот")) matchedSymptom = "живот";
+        else if (userText.includes("горло")) matchedSymptom = "горло";
+        else if (userText.includes("спина")) matchedSymptom = "спина";
+        else if (userText.includes("сердце")) matchedSymptom = "сердце";
+        else if (userText.includes("одышка")) matchedSymptom = "одышка";
+        else if (userText.includes("ноги") || userText.includes("нога")) matchedSymptom = "ноги болят";
+        else if (userText.includes("давление")) matchedSymptom = "давление";
+
+        if (matchedSymptom && doctorsBySymptom[matchedSymptom]) {
+          addMessage(`Вот подходящие специалисты в Казани:`, 'bot');
+          addDoctorCards(doctorsBySymptom[matchedSymptom]);
+        } else if (userText.toLowerCase().includes("врач") || userText.toLowerCase().includes("порекомендуй")) {
+          addMessage("Вот несколько квалифицированных терапевтов, к которым вы можете обратиться:", 'bot');
+          addDoctorCards([
+            { name: "Иванов Иван Иванович", specialty: "Терапевт", rating: "★★★★☆ 4.8", link: "https://example.com/ivanov"  },
+            { name: "Петрова Елена Сергеевна", specialty: "Терапевт", rating: "★★★★★ 4.7", link: "https://example.com/petrova"  },
+            { name: "Смирнов Алексей Николаевич", specialty: "Терапевт", rating: "★★★★★ 4.9", link: "https://example.com/smirnov"  }
+          ]);
+        }
+      }, 500);
+
+      input.value = '';
+    });
+  </script>
+</body>
+</html>
